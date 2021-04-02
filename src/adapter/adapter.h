@@ -8,6 +8,8 @@ class Adapter
 public:
   Adapter();
 
+  virtual QString id() = 0;
+
   static void InitializeAdapters();
 
   static void DestroyAdapters();
@@ -16,10 +18,14 @@ public:
 
   static bool WriteArchive(const QString &filename, const Archive *archive);
 
-  static QByteArray ExtractFile(const Item *item);
+  static QByteArray ExtractFile(const QString &adapter, const Item *item);
+
+  static Adapter *GetAdapterFromID(const QString &id);
 
 protected:
   virtual Archive *ReadArchiveInternal(const QString &filename) = 0;
+
+  virtual QByteArray ExtractFileInternal(const Item *item) = 0;
 
 private:
   static QVector<Adapter*> adapters_;

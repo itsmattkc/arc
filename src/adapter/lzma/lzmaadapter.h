@@ -10,6 +10,11 @@ class LZMAAdapter : public Adapter
 public:
   LZMAAdapter();
 
+  virtual QString id() override
+  {
+    return QStringLiteral("lzma");
+  }
+
 protected:
   virtual Archive *ReadArchiveInternal(const QString &filename) override;
 

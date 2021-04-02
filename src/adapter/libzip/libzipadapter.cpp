@@ -58,4 +58,5 @@ Archive *LibZipAdapter::ReadArchiveInternal(const QString &filename)
   return archive;
 }
 
+
 #endif

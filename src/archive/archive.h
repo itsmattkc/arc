@@ -51,8 +51,20 @@ public:
     return createIndex(0, column, root_);
   }
 
+  const QString &GetAdapter() const
+  {
+    return adapter_;
+  }
+
+  void SetAdapter(const QString &a)
+  {
+    adapter_ = a;
+  }
+
 private:
   Item *root_;
+
+  QString adapter_;
 
 };
 

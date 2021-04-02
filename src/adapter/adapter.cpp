@@ -32,8 +32,31 @@ Archive *Adapter::ReadArchive(const QString &filename)
   foreach (Adapter* a, adapters_) {
     Archive *attempt = a->ReadArchiveInternal(filename);
     if (attempt) {
+      attempt->SetAdapter(a->id());
       attempt->GetRoot()->SetFilename(QFileInfo(filename).fileName());
       return attempt;
+    }
+  }
+
+  return nullptr;
+}
+
+QByteArray Adapter::ExtractFile(const QString &adapter_id, const Item *item)
+{
+  Adapter *adapter = GetAdapterFromID(adapter_id);
+
+  if (!adapter) {
+    return QByteArray();
+  }
+
+  return adapter->ExtractFileInternal(item);
+}
+
+Adapter *Adapter::GetAdapterFromID(const QString &id)
+{
+  foreach (Adapter *a, adapters_) {
+    if (a->id() == id) {
+      return a;
     }
   }
 
