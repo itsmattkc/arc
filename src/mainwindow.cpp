@@ -1,23 +1,46 @@
 #include "mainwindow.h"
 
 #include <QDebug>
+#include <QFileDialog>
 #include <QHBoxLayout>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QSplitter>
+#include <QToolBar>
+
+#include "adapter/adapter.h"
 
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent),
     archive_(nullptr)
 {
-  setWindowTitle(QStringLiteral("Arc"));
   //setWindowState(Qt::WindowMaximized);
 
   QMenuBar *menu_bar = new QMenuBar();
   setMenuBar(menu_bar);
 
+  QToolBar *toolbar = new QToolBar(this);
+  QAction *toolbar_new_action = toolbar->addAction(tr("New"));
+  toolbar_new_action->setToolTip(tr("Create new archive"));
+  connect(toolbar_new_action, &QAction::triggered, this, &MainWindow::NewArchive);
+  QAction *toolbar_open_action = toolbar->addAction(tr("Open"));
+  toolbar_open_action->setToolTip(tr("Open existing archive"));
+  connect(toolbar_open_action, &QAction::triggered, this, &MainWindow::OpenArchive);
+  QAction *toolbar_save_action = toolbar->addAction(tr("Save"));
+  toolbar_save_action->setToolTip(tr("Save current archive"));
+  toolbar->addSeparator();
+  QAction *toolbar_type_action = toolbar->addAction(tr("ZIP"));
+  toolbar_type_action->setToolTip(tr("Change archive type"));
+  QAction *toolbar_add_action = toolbar->addAction(tr("Add"));
+  toolbar_add_action->setToolTip(tr("Add files to archive"));
+  QAction *toolbar_extract_action = toolbar->addAction(tr("Extract"));
+  toolbar_extract_action->setToolTip(tr("Extract selected files from archive"));
+  connect(toolbar_extract_action, &QAction::triggered, this, &MainWindow::ExtractSelected);
+  addToolBar(toolbar);
+
   QMenu *file_menu = menu_bar->addMenu(tr("&File"));
-  file_menu->addAction(tr("&New"));
-  file_menu->addAction(tr("&Open"));
+  file_menu->addAction(tr("&New"), this, &MainWindow::NewArchive, QStringLiteral("Ctrl+N"));
+  file_menu->addAction(tr("&Open"), this, &MainWindow::OpenArchive, QStringLiteral("Ctrl+O"));
   file_menu->addAction(tr("&Save"));
   file_menu->addAction(tr("Save &As"));
   file_menu->addSeparator();
@@ -32,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
   dir_tree_->setSortingEnabled(true);
   dir_tree_->setModel(dir_model_);
   dir_tree_->sortByColumn(0, Qt::AscendingOrder);
+  dir_tree_->setDragEnabled(true);
   splitter->addWidget(dir_tree_);
 
   file_tree_ = new QTreeView();
@@ -41,6 +65,8 @@ MainWindow::MainWindow(QWidget *parent)
   file_tree_->sortByColumn(0, Qt::AscendingOrder);
   file_tree_->setItemsExpandable(false);
   file_tree_->setRootIsDecorated(false);
+  file_tree_->setDragEnabled(true);
+  file_tree_->setSelectionMode(QAbstractItemView::ExtendedSelection);
   splitter->addWidget(file_tree_);
 
   connect(dir_tree_, &QTreeView::clicked, this, &MainWindow::DirViewSelectionChanged);
@@ -54,21 +80,85 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+  delete archive_;
 }
 
 void MainWindow::SetArchive(Archive *archive)
 {
+  delete archive_;
   archive_ = archive;
   dir_model_->setSourceModel(archive_);
   file_model_->setSourceModel(archive_);
   dir_tree_->expand(dir_model_->mapFromSource(archive->GetRootIndex()));
   file_tree_->setRootIndex(file_model_->mapFromSource(archive->GetRootIndex()));
+  setWindowTitle(tr("Arc - %1").arg(archive->GetRoot()->GetFilename()));
 }
 
 void MainWindow::NewArchive()
 {
   Archive *new_archive = new Archive();
   SetArchive(new_archive);
+}
+
+void MainWindow::OpenArchive()
+{
+  QString s = QFileDialog::getOpenFileName(this, tr("Open Archive"));
+
+  if (!s.isEmpty()) {
+    Archive *archive = Adapter::ReadArchive(s);
+    if (archive) {
+      SetArchive(archive);
+    } else {
+      QMessageBox::critical(this, tr("Failed to open archive"),
+                            tr("Arc is not compatible with this type of archive"));
+    }
+  }
+}
+
+void MainWindow::ExtractItem(ErrorDialog *ed, const QString &destination, Item *item)
+{
+  QDir dest_dir(destination);
+  QString child_filename = dest_dir.filePath(item->GetFilename());
+
+  if (item->type() == Item::kFolder) {
+    QDir child_dir(child_filename);
+    if (child_dir.mkpath(QStringLiteral("."))) {
+      // Recursively follow directory
+      foreach (Item *grandchild, item->GetChildren()) {
+        ExtractItem(ed, child_filename, grandchild);
+      }
+    } else {
+      ed->AddEntry(ErrorDialog::kError, tr("Failed to create directory: %1").arg(child_filename));
+    }
+  } else if (item->type() == Item::kFile) {
+
+  }
+}
+
+void MainWindow::ExtractSelected()
+{
+  QModelIndexList selected_rows = file_tree_->selectionModel()->selectedRows();
+
+  if (selected_rows.isEmpty()) {
+    QMessageBox::critical(this, tr("Failed to extract"), tr("No files selected to extract."));
+    return;
+  }
+
+  QString dir = QFileDialog::getExistingDirectory(this, tr("Extract Files"));
+
+  if (!dir.isEmpty()) {
+    ErrorDialog ed(this);
+
+    foreach (QModelIndex selected_index, selected_rows) {
+      Item *selected_item = static_cast<Item *>(file_model_->mapToSource(selected_index).internalPointer());
+
+      ExtractItem(&ed, dir, selected_item);
+    }
+
+    if (ed.GetEntryCount()) {
+      ed.exec();
+    }
+  }
 }
 
 void MainWindow::DirViewSelectionChanged(const QModelIndex &index)

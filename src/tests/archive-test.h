@@ -79,7 +79,7 @@ void ArchiveAddRandomData(Archive* archive, Item *folder = nullptr)
 
     if (type == Item::kFolder) {
       hierarchy_len++;
-      AddRandomData(item);
+      ArchiveAddRandomData(archive, item);
       hierarchy_len--;
     }
   }

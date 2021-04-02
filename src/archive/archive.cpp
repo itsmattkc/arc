@@ -2,6 +2,11 @@
 
 #include <QApplication>
 #include <QFileIconProvider>
+#include <QMimeData>
+#include <QTextStream>
+#include <QUrl>
+
+#define super QAbstractItemModel
 
 Archive::Archive()
 {
@@ -111,4 +116,48 @@ QVariant Archive::headerData(int section, Qt::Orientation orientation, int role)
   }
 
   return QVariant();
+}
+
+Qt::ItemFlags Archive::flags(const QModelIndex &index) const
+{
+  Item *item = static_cast<Item *>(index.internalPointer());
+
+  Qt::ItemFlags f = super::flags(index);
+
+  f |= Qt::ItemIsDragEnabled;
+
+  if (item->type() == Item::kFolder) {
+    f |= Qt::ItemIsDropEnabled;
+  }
+
+  return f;
+}
+
+QStringList Archive::mimeTypes() const
+{
+  return {QStringLiteral("text/uri-list")};
+}
+
+QMimeData *Archive::mimeData(const QModelIndexList &indexes) const
+{
+  if (indexes.isEmpty()) {
+    return nullptr;
+  }
+
+  QVector<Item*> items(indexes.size());
+
+  QByteArray encoded_data;
+  QTextStream data_stream(&encoded_data, QIODevice::WriteOnly);
+
+  /*for (int i=0; i<items.size(); i++) {
+    Item* item = static_cast<Item*>(indexes.at(i).internalPointer());
+    items.replace(i, item);
+    data_stream << item->GetFilename();
+  }*/
+  QList<QUrl> urls;
+  urls.append(QUrl(QStringLiteral("file:///home/matt/Desktop/heck.txt")));
+
+  QMimeData *data = new QMimeData();
+  data->setUrls(urls);
+  return data;
 }

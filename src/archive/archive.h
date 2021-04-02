@@ -36,6 +36,11 @@ public:
 
   virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
+  // Enable drag/drop
+  virtual Qt::ItemFlags flags(const QModelIndex& index) const override;
+  virtual QStringList mimeTypes() const override;
+  virtual QMimeData *mimeData(const QModelIndexList &indexes) const override;
+
   Item *GetRoot() const
   {
     return root_;

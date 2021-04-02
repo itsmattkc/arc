@@ -6,6 +6,7 @@
 
 #include "archive/archive.h"
 #include "ui/dirviewsortfilterproxymodel.h"
+#include "ui/errordialog.h"
 #include "ui/fileviewsortfilterproxymodel.h"
 
 class MainWindow : public QMainWindow
@@ -19,6 +20,8 @@ public:
 private:
   void SetArchive(Archive* archive);
 
+  void ExtractItem(ErrorDialog *ed, const QString &destination, Item *item);
+
   Archive *archive_;
 
   QTreeView *dir_tree_;
@@ -29,6 +32,10 @@ private:
 
 private slots:
   void NewArchive();
+
+  void OpenArchive();
+
+  void ExtractSelected();
 
   void DirViewSelectionChanged(const QModelIndex &index);
 

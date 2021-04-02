@@ -12,7 +12,7 @@ public:
     kFolder
   };
 
-  Item(Type type = kFile, const QString &filename = QString());
+  Item(Type type = kFile, const QString &filename = QString(), qint64 size = 0);
 
   virtual ~Item()
   {
@@ -84,6 +84,11 @@ public:
     return children_.size();
   }
 
+  const QVector<Item *>& GetChildren() const
+  {
+    return children_;
+  }
+
   const QString &GetFilename() const
   {
     return filename_;
@@ -97,6 +102,17 @@ public:
   qint64 GetFileSize() const
   {
     return file_size_;
+  }
+
+  Item *GetChildWithName(const QString& name) const
+  {
+    foreach (Item *c, children_) {
+      if (c->GetFilename() == name) {
+        return c;
+      }
+    }
+
+    return nullptr;
   }
 
 private:
