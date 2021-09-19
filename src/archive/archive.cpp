@@ -6,11 +6,52 @@
 #include <QTextStream>
 #include <QUrl>
 
+#include "adapters/ziparchive.h"
+
 #define super QAbstractItemModel
 
 Archive::Archive()
 {
-  root_ = new Item(Item::kFolder, tr("(untitled)"));
+  ResetRoot();
+  open_ = false;
+}
+
+#define TRY_ARCHIVE(ArchiveType) \
+  { ArchiveType *a = new ArchiveType();if (a->Open(filename)) return a; else delete a; }
+
+
+Archive *Archive::OpenArchive(const QString &filename)
+{
+#ifdef USE_LIBZIP
+  TRY_ARCHIVE(ZipArchive);
+#endif
+  return nullptr;
+}
+
+bool Archive::Open(const QString &filename)
+{
+  if (open_) {
+    Close();
+  }
+
+  return OpenInternal(filename);
+}
+
+bool Archive::Extract(const Item *item, const QString &filename)
+{
+  return ExtractInternal(item, filename);
+}
+
+void Archive::Close()
+{
+  if (open_) {
+    // Run internal close tasks
+    CloseInternal();
+
+    ResetRoot();
+
+    open_ = false;
+  }
 }
 
 QModelIndex Archive::index(int row, int column, const QModelIndex &parent) const
@@ -26,7 +67,7 @@ QModelIndex Archive::parent(const QModelIndex &child) const
 {
   Item* item = static_cast<Item *>(child.internalPointer());
 
-  if (item == root_) {
+  if (item == root_.get()) {
     return QModelIndex();
   }
 
@@ -34,7 +75,7 @@ QModelIndex Archive::parent(const QModelIndex &child) const
 
   int parent_index;
 
-  if (par == root_) {
+  if (par == root_.get()) {
     parent_index = 0;
   } else{
     parent_index = par->GetParent()->GetIndexOfChild(par);
@@ -85,7 +126,7 @@ QVariant Archive::data(const QModelIndex &index, int role) const
     break;
   case kColumnSize:
     if (role == Qt::DisplayRole && item->type() == Item::kFile) {
-      return QString::number(item->GetFileSize());
+      return QLocale::system().formattedDataSize(item->GetFileSize(), 1);
     }
     break;
   case kColumnType:
@@ -160,4 +201,9 @@ QMimeData *Archive::mimeData(const QModelIndexList &indexes) const
   QMimeData *data = new QMimeData();
   data->setUrls(urls);
   return data;
+}
+
+void Archive::ResetRoot()
+{
+  root_ = std::make_unique<Item>(Item::kFolder, tr("(untitled)"));
 }

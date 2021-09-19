@@ -8,7 +8,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -16,12 +16,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 add_executable(arc
-  src/adapter/adapter.cpp
-  src/adapter/adapter.h
-  src/adapter/libzip/libzipadapter.cpp
-  src/adapter/libzip/libzipadapter.h
-  src/adapter/lzma/lzmaadapter.cpp
-  src/adapter/lzma/lzmaadapter.h
+  src/archive/adapters/ziparchive.cpp
+  src/archive/adapters/ziparchive.h
   src/archive/archive.cpp
   src/archive/archive.h
   src/archive/item.cpp

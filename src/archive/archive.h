@@ -1,19 +1,20 @@
 #ifndef ARCHIVE_H
 #define ARCHIVE_H
 
+#include <memory>
 #include <QAbstractItemModel>
 
 #include "item.h"
+
+#define ARCHIVE_DEFAULT_DESTRUCTOR(x) \
+  virtual ~x() override {Close();}
 
 class Archive : public QAbstractItemModel
 {
 public:
   Archive();
 
-  virtual ~Archive() override
-  {
-    delete root_;
-  }
+  ARCHIVE_DEFAULT_DESTRUCTOR(Archive)
 
   enum Column {
     kColumnName,
@@ -27,6 +28,12 @@ public:
   Archive(Archive&&) = delete;
   Archive& operator=(const Archive&) = delete;
   Archive& operator=(Archive&&) = delete;
+
+  static Archive *OpenArchive(const QString &filename);
+
+  bool Open(const QString &filename);
+  bool Extract(const Item *item, const QString &filename);
+  void Close();
 
   virtual QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
   virtual QModelIndex parent(const QModelIndex &child) const override;
@@ -43,28 +50,27 @@ public:
 
   Item *GetRoot() const
   {
-    return root_;
+    return root_.get();
   }
 
   QModelIndex GetRootIndex(int column = 0) const
   {
-    return createIndex(0, column, root_);
+    return createIndex(0, column, root_.get());
   }
 
-  const QString &GetAdapter() const
-  {
-    return adapter_;
-  }
+protected:
+  virtual bool OpenInternal(const QString &filename) = 0;
 
-  void SetAdapter(const QString &a)
-  {
-    adapter_ = a;
-  }
+  virtual bool ExtractInternal(const Item *item, const QString &output_filename) = 0;
+
+  virtual void CloseInternal() = 0;
 
 private:
-  Item *root_;
+  void ResetRoot();
 
-  QString adapter_;
+  std::unique_ptr<Item> root_;
+
+  bool open_;
 
 };
 

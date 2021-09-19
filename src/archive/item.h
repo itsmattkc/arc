@@ -2,6 +2,7 @@
 #define ITEM_H
 
 #include <QString>
+#include <QVariant>
 #include <QVector>
 
 class Item
@@ -12,7 +13,7 @@ public:
     kFolder
   };
 
-  Item(Type type = kFile, const QString &filename = QString(), qint64 size = 0);
+  Item(Type type = kFile, const QString &filename = QString(), qint64 size = 0, const QVariant &id = QVariant());
 
   virtual ~Item()
   {
@@ -115,6 +116,11 @@ public:
     return nullptr;
   }
 
+  const QVariant &id() const
+  {
+    return id_;
+  }
+
 private:
   Item *parent_;
 
@@ -127,6 +133,8 @@ private:
   QVector<Item *> children_;
 
   qint64 file_size_;
+
+  QVariant id_;
 
 };
 

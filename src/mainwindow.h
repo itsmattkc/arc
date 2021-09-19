@@ -15,14 +15,13 @@ class MainWindow : public QMainWindow
 
 public:
   MainWindow(QWidget *parent = nullptr);
-  ~MainWindow();
 
 private:
   void SetArchive(Archive* archive);
 
   void ExtractItem(ErrorDialog *ed, const QString &destination, Item *item);
 
-  Archive *archive_;
+  std::unique_ptr<Archive> archive_;
 
   QTreeView *dir_tree_;
   QTreeView *file_tree_;

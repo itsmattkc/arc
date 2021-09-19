@@ -8,7 +8,7 @@
 #include <QSplitter>
 #include <QToolBar>
 
-#include "adapter/adapter.h"
+#include "archive/adapters/ziparchive.h"
 
 MainWindow::MainWindow(QWidget *parent)
   : QMainWindow(parent),
@@ -78,26 +78,19 @@ MainWindow::MainWindow(QWidget *parent)
   NewArchive();
 }
 
-MainWindow::~MainWindow()
-{
-  delete archive_;
-}
-
 void MainWindow::SetArchive(Archive *archive)
 {
-  delete archive_;
-  archive_ = archive;
-  dir_model_->setSourceModel(archive_);
-  file_model_->setSourceModel(archive_);
+  dir_model_->setSourceModel(archive);
+  file_model_->setSourceModel(archive);
   dir_tree_->expand(dir_model_->mapFromSource(archive->GetRootIndex()));
   file_tree_->setRootIndex(file_model_->mapFromSource(archive->GetRootIndex()));
   setWindowTitle(tr("Arc - %1").arg(archive->GetRoot()->GetFilename()));
+  archive_.reset(archive);
 }
 
 void MainWindow::NewArchive()
 {
-  Archive *new_archive = new Archive();
-  SetArchive(new_archive);
+  SetArchive(new ZipArchive());
 }
 
 void MainWindow::OpenArchive()
@@ -105,7 +98,7 @@ void MainWindow::OpenArchive()
   QString s = QFileDialog::getOpenFileName(this, tr("Open Archive"));
 
   if (!s.isEmpty()) {
-    Archive *archive = Adapter::ReadArchive(s);
+    Archive *archive = Archive::OpenArchive(s);
     if (archive) {
       SetArchive(archive);
     } else {
@@ -131,7 +124,7 @@ void MainWindow::ExtractItem(ErrorDialog *ed, const QString &destination, Item *
       ed->AddEntry(ErrorDialog::kError, tr("Failed to create directory: %1").arg(child_filename));
     }
   } else if (item->type() == Item::kFile) {
-
+    archive_->Extract(item, child_filename);
   }
 }
 
